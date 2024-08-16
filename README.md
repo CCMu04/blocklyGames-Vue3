@@ -1,24 +1,12 @@
-# rueating
+# Blockly - Vue3 实践项目
 
-## Project setup
+## 如何使用？
+1. 下载完整的压缩包源文件
+2. 在根目录终端执行以下命令下载项目所需插件包
 ```
 npm install
 ```
-
-### Compiles and hot-reloads for development
+3. 下载完成后执行启动命令
 ```
 npm run serve
 ```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
