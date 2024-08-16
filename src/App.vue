@@ -4,13 +4,13 @@ import Footer from './components/Footer.vue'
 </script>
 
 <template>
-  <Header />
+  <Header/>
   <router-view v-slot="{ Component }">
     <keep-alive>
       <component :is="Component"/>
     </keep-alive>
   </router-view>
-  <Footer />
+  <Footer/>
 </template>
 
 <style>

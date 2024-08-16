@@ -11,6 +11,14 @@ const workspace = ref();
 const toolbox = toolboxs[0].toolbox[0];
 onMounted(() => {
   workspace.value = Blockly.inject('blocklyDiv', {toolbox: toolbox});
+
+  let canvas = document.getElementById("canvas");
+  let ctx = canvas.getContext("2d");
+
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+  ctx.fillStyle = '#87CEEB';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 });
 
 function runCode() {
@@ -30,30 +38,33 @@ const gameInfo = [
 
 <template>
   <!-- 左弹窗显示难度选择窗口 -->
-  <el-drawer v-model="diffSelected" size="80" :show-close="false" :with-header="false" direction="ltr" style="text-align: center;">
-    <div v-for="diff in gameInfo">
+  <el-drawer v-model="diffSelected" size="80" :show-close="false" :with-header="false" direction="ltr"
+             style="text-align: center;">
+    <div v-for="diff in gameInfo" :key="diff.id">
       <el-button style="margin: 10px auto">{{ diff.diff }}</el-button>
     </div>
   </el-drawer>
 
-  <div style="display: flex;">
-    <!--  视频组件  -->
+  <div style="display: flex; height: 90vh;">
+    <!-- 视频组件 -->
     <div id="videoBox" v-show="videoShow">视频</div>
 
-    <div id="workspace" >
-      <div style="display: flex; flex: 9">
-        <div id="showBox">舞台</div>
+    <div id="workspace">
+      <div style="display: flex; flex: 1; height: 85vh;">
+        <div id="showBox">
+          <canvas id="canvas"/>
+        </div>
         <div id="toolBox">
           <div style="margin: 20px">
             <el-button @click="diffSelected = !diffSelected">关卡选择</el-button>
             <el-button @click="videoShow = !videoShow">视频教程</el-button>
           </div>
-          <div id="blocklyDiv" style="height: 70vh;" />
+          <div id="blocklyDiv" style="flex-grow: 1;"/>
         </div>
       </div>
 
-      <div style="display: flex; flex: 1; min-height: 10vh">
-        <div style="margin: 12px">
+      <div style="display: flex; flex: 0 1 10vh; align-items: center; padding: 0 20px;">
+        <div style="flex-grow: 1;">
           <el-text>游戏简介</el-text>
         </div>
         <div id="buttonBox">
@@ -68,30 +79,38 @@ const gameInfo = [
 <style scoped>
 #videoBox {
   flex: 1;
-  height: 100%;
   border: #ccc 1px solid;
 }
 
 #workspace {
   flex: 2;
-  height: 100%;
   display: flex;
   flex-direction: column;
   border: #ccc 1px solid;
 }
 
 #showBox {
-  flex: 11;
+  flex: 1;
   border: #ccc 1px solid;
 }
 
+#canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  box-sizing: border-box;
+}
+
 #toolBox {
-  flex: 10;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   border: #ccc 1px solid;
 }
 
 #buttonBox {
-  margin: auto 0 auto auto;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .runButton {
