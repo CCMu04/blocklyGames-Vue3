@@ -2,31 +2,37 @@
 import {onMounted, ref} from "vue";
 import {toolboxs} from "@/blocks/js/toolboxs";
 import * as Blockly from "blockly";
+import {defineMiGongBlocks} from "@/blocks/MiGong";
 
 const videoShow = ref(false); // 视频界面开关
 const diffSelected = ref(false); // 关卡难度选择开关
 const isRun = ref(false); // 判断是否运行的状态
 
-const workspace = ref();
-const toolbox = toolboxs[0].toolbox[0];
+let workspace = null;
+let toolbox = toolboxs[0].toolbox[0];
 
 onMounted(() => {
-  // 动态设置大小
-  const screenWidth = window.innerWidth;
-  const screenHeight = window.innerHeight;
+  let screenWidth = window.innerWidth;
+  let screenHeight = window.innerHeight;
 
-  const allBox = document.getElementById("allBox");
+  let allBox = document.getElementById("allBox");
   allBox.style.minWidth = `${screenWidth - 100}px`;
   allBox.style.height = `${screenHeight - 50}px`;
 
-  workspace.value = Blockly.inject('blocklyDiv', {toolbox: toolbox});
+  defineMiGongBlocks();
+  workspace = Blockly.inject('blocklyDiv', {toolbox: toolbox});
 
   let canvas = document.getElementById("canvas");
   let ctx = canvas.getContext("2d");
 
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
-  ctx.fillStyle = '#87CEEB';
+
+  let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, '#87CEEB');
+  gradient.addColorStop(1, '#3CB371');
+
+  ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 });
 
@@ -64,7 +70,7 @@ const gameInfo = [
           <canvas id="canvas"/>
         </div>
         <div id="toolBox">
-          <div id="controlPanel" style="margin: 20px; display: flex; gap: 20px; justify-content: center;">
+          <div id="controlPanel" style="margin: 20px; display: flex; gap: 20px; justify-content: flex-end;">
             <el-button id="levelSelectButton" class="control-button" @click="diffSelected = !diffSelected"
                        :class="{ active: diffSelected }">关卡选择
             </el-button>
@@ -96,6 +102,8 @@ const gameInfo = [
 
 #videoBox {
   flex: 1;
+  margin-right: 5px;
+  border: 1px solid #bbb;
 }
 
 #workspace {
@@ -114,47 +122,44 @@ const gameInfo = [
   height: 100%;
   display: block;
   box-sizing: border-box;
+  border-top-left-radius: 8px;
 }
 
 #toolBox {
   display: flex;
   flex-direction: column;
   flex: 1;
-}
-
-#controlPanel {
-  display: flex;
-  justify-content: flex-end;
-  gap: 20px;
+  background: linear-gradient(to bottom, #87CEEB, #3CB371);
+  border-top-right-radius: 8px;
 }
 
 .control-button {
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #98FB98, #8FBC8F);
-  color: #2F4F4F;
+  padding: 24px 24px;
+  background: linear-gradient(135deg, #E0F7FA, #B2EBF2);
+  color: #006064;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 10px;
+  font-size: 1.1rem;
   font-weight: bold;
-  transition: background 0.3s ease, transform 0.2s ease;
-  box-shadow: 0 4px 6px rgba(0, 100, 0, 0.2);
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 150, 136, 0.4);
 }
 
 .control-button:hover {
-  background: linear-gradient(135deg, #90EE90, #76C276);
+  background: linear-gradient(135deg, #B3E5FC, #81D4FA);
   transform: translateY(-2px);
-  transition: background 0.5s ease;
+  box-shadow: 0 6px 12px rgba(0, 150, 136, 0.6);
 }
 
 .control-button.active {
-  background: linear-gradient(135deg, #32CD32, #228B22);
-  transition: background 0.5s ease;
+  background: linear-gradient(135deg, #4FC3F7, #039BE5);
+  transition: background 0.5s ease, border-color 0.3s ease;
 }
 
 .control-button.active:hover {
-  background: linear-gradient(135deg, #228B22, #006400);
-  transform: translateY(-2px);
-  transition: background 0.5s ease;
+  background: linear-gradient(135deg, #0288D1, #0277BD);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 100, 100, 0.8);
 }
 
 #runBox {
@@ -173,7 +178,7 @@ const gameInfo = [
   background-color: rgba(178, 232, 178, 0.44);
   padding: 10px;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 128, 0, 0.3); /* 与#runBox相同的阴影 */
+  box-shadow: 0 4px 8px rgba(0, 128, 0, 0.3);
 }
 
 .runButton {

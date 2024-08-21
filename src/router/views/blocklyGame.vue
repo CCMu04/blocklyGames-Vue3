@@ -9,8 +9,9 @@ import {ElMessage} from "element-plus";
 import {MiGong} from "@/blocks/action/MiGong";
 import {javascriptGenerator} from "blockly/javascript";
 import router from "@/router/router";
+import {defineMiGongBlocks} from "@/blocks/MiGong";
 
-const workspace = ref();
+let workspace = null;
 const game = ref({});
 const gameInfo = ref([{}]);
 const toolbox = ref('');
@@ -19,7 +20,8 @@ const toolboxDiff = ref([]);
 
 initData();
 onMounted(() => {
-  workspace.value = Blockly.inject('blocklyDiv', {toolbox: toolbox.value});
+  defineMiGongBlocks();
+  workspace = Blockly.inject('blocklyDiv', {toolbox: toolbox.value});
   selectDiff(0);
 });
 
@@ -27,8 +29,7 @@ function selectDiff(diff) {
   initElement(game.value.id, diff);
   selectedNumber.value = diff;
   toolbox.value = toolboxDiff.value[selectedNumber.value];
-  workspace.value.clear();
-  workspace.value.updateToolbox(toolbox.value);
+  workspace.updateToolbox(toolbox.value);
 }
 
 function initData() {
@@ -58,7 +59,7 @@ function initData() {
 
 function runCode() {
   javascriptGenerator.addReservedWords('code');
-  let code = javascriptGenerator.workspaceToCode(workspace.value);
+  let code = javascriptGenerator.workspaceToCode(workspace);
   if (game.value.id === 1) MiGong.run(code);
 }
 
