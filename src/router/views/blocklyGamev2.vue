@@ -1,13 +1,22 @@
 <script setup>
 import * as Blockly from "blockly";
-import {onMounted, ref} from "vue";
 import {themes} from "@/blocks/js/themes";
+import {onMounted, ref, watch} from "vue";
 import {toolboxs} from "@/blocks/js/toolboxs";
-import {workspace} from "@/blocks/js/workspace";
+import {gameWorkspace} from "@/blocks/js/gameWorkspace";
+import {gameStatus} from "@/blocks/js/gameStatus";
+import {myLocalStorage} from "@/store/myLocalStorage";
+import router from "@/router/router";
+import {ElLoading, ElMessage} from "element-plus";
+import {javascriptGenerator} from "blockly/javascript";
+import {MiGong} from "@/blocks/action/MiGong";
+import {useStorage} from "@/store/useStorage";
+import {initElement} from "@/blocks/js/initElement";
 
+const gameInfo = ref([{}]);
 const videoShow = ref(false);
+const selectedNumber = ref(0);
 const diffSelected = ref(false);
-const isRun = ref(false);
 const drawerStyle = {
   'background': 'linear-gradient(135deg, #81c784, #4caf50)',
   'padding': '20px',
@@ -18,8 +27,11 @@ const drawerStyle = {
   'align-items': 'center'
 }
 
-let toolbox = toolboxs[0].toolbox[0];
+let game = {}; // 游戏信息
+let toolbox = null;
+let toolboxDiff = []; // 关卡难度
 
+initData();
 onMounted(() => {
   let screenHeight = window.innerHeight;
 
@@ -28,7 +40,9 @@ onMounted(() => {
   allBox.style.minHeight = `720px`;
   allBox.style.height = `${screenHeight - 50}px`;
 
-  workspace.workspace = Blockly.inject('blocklyDiv', {
+
+  gameStatus.isRun = false;
+  gameWorkspace.workspace = Blockly.inject('blocklyDiv', {
     toolbox: toolbox,
     theme: themes.sftTheme,
     move: {
@@ -39,29 +53,77 @@ onMounted(() => {
       drag: true
     }
   });
+
+  selectDiff(0);
 });
 
+function initData() {
+  if (myLocalStorage.getItem("game")) {
+    game = JSON.parse(myLocalStorage.getItem("game"));
+    let axios = require('axios');
+    let data = new FormData();
+    data.append("gameId", game.id);
+    let getGameInfo = axios.get(`https://api.chcmu.xyz/getGameInfo?gameId=${game.id}`);
+    let loading = ElLoading.service({
+      lock: true,
+      text: 'Loading',
+      background: 'rgba(0, 0, 0, 0.7)',
+    })
+    Promise.resolve(getGameInfo)
+        .then(response => {
+          if (response.data.code === 1) {
+            gameInfo.value = response.data.data;
+          } else ElMessage({type: "warning", message: response.data.msg, showClose: true});
+          loading.close();
+        }).catch(error => {
+      console.log(error);
+    });
+
+    // 获取关卡工具栏信息
+    for (let i = 0; i < toolboxs.length; i++)
+      if (toolboxs[i].id === game.id) toolboxDiff = toolboxs[i].toolbox;
+    selectedNumber.value = 0; // 初始设定为第一关
+    toolbox = toolboxDiff[selectedNumber.value];
+    document.title = game.name;
+  } else {
+    router.back();
+  }
+}
+
+function selectDiff(diff) {
+  initElement(game.id, diff);
+  selectedNumber.value = diff;
+  toolbox = toolboxDiff[selectedNumber.value];
+  gameWorkspace.workspace.clear();
+  gameWorkspace.workspace.updateToolbox(toolbox);
+}
+
 function runCode() {
-  isRun.value = true;
+  javascriptGenerator.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
+  javascriptGenerator.addReservedWords('highlightBlock');
+  javascriptGenerator.addReservedWords('code');
+  let code = javascriptGenerator.workspaceToCode(gameWorkspace.workspace);
+
+  gameStatus.isRun = true;
+  if (game.id === 1) MiGong.run(code);
 }
 
 function refreshGame() {
-  isRun.value = false;
+
 }
 
-const gameInfo = [
-  {diff: 1},
-  {diff: 2},
-  {diff: 3}
-]
+watch((useStorage("game")), () => {
+  initData();
+  selectDiff(0);
+});
 </script>
 
 <template>
   <!-- 左弹窗显示难度选择窗口 -->
   <el-drawer v-model="diffSelected" size="80" :show-close="false" :with-header="false" direction="ltr"
              :style="drawerStyle">
-    <div v-for="diff in gameInfo" :key="diff.id" class="button-container">
-      <el-button class="diff-button">{{ diff.diff }}</el-button>
+    <div v-for="(diff, n) in gameInfo" :key="n" class="button-container">
+      <el-button class="diff-button" @click="selectDiff(n)">{{ diff.diff }}</el-button>
     </div>
   </el-drawer>
 
@@ -89,11 +151,11 @@ const gameInfo = [
 
       <div id="runBox">
         <div style="flex-grow: 1;">
-          <el-text style="color: #98FB98; font-weight: bold;">游戏简介</el-text>
+          <el-text style="color: #98FB98; font-weight: bold;">{{ gameInfo[selectedNumber].info }}</el-text>
         </div>
         <div id="buttonBox">
-          <el-button v-if="!isRun" @click="runCode" class="runButton">运行</el-button>
-          <el-button v-else type="danger" @click="refreshGame" class="runButton resetButton">重置</el-button>
+          <el-button v-show="!gameStatus.isRun" @click="runCode" class="runButton">运行</el-button>
+          <el-button v-show="gameStatus.isRun" @click="refreshGame" class="runButton resetButton">重置</el-button>
         </div>
       </div>
     </div>

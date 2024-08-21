@@ -1,6 +1,6 @@
 import Interpreter from 'js-interpreter';
 import {ElMessage, ElMessageBox} from "element-plus";
-import {workspace} from "@/blocks/js/workspace";
+import {gameWorkspace} from "@/blocks/js/gameWorkspace";
 
 export const MiGong = {};
 
@@ -26,145 +26,108 @@ MiGong.yLocation = 0;
 MiGong.mapElement = [[]];
 
 MiGong.init = function (diff) {
-    MiGong.degree = 0;
-    MiGong.diff = diff;
-    MiGong.play = false;
-    MiGong.xChange = 0;
-    MiGong.yChange = 0;
-
-    setTransform()
-    let itemElements = new Array(MiGong.elements.length);
-    for (let i = 0; i < MiGong.elements.length; i++) {
-        itemElements[i] = document.getElementById(MiGong.elements[i]);
-        if (itemElements[i]) itemElements[i].hidden = true;
-    }
-
-    let allElement = document.getElementById(MiGong.name);
-    if (allElement) allElement.hidden = false;
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    if (!canvas || !ctx) return;
+    canvas.width = 460;
+    canvas.height = 460;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (diff === 0) {
-        MiGong.need = 0;
-        MiGong.degree = 0;
-        MiGong.xLocation = 0;
-        MiGong.yLocation = 0;
-        for (let i = 0; i < 2; i++)
-            if (itemElements[i]) itemElements[i].hidden = false;
-        MiGong.map = [
-            [1, 0, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 9] // 1起点, 9终点
-        ];
+        // 定义网格参数
+        const gridRows = 1;
+        const gridCols = 5;
+        const gridSize = 450; // 网格的总宽度
+        const cellSize = gridSize / gridCols; // 每个单元格的宽度
 
-        MiGong.mapElement = [
-            [itemElements[0], null, null, null],
-            [null, null, null, null],
-            [null, null, null, null],
-            [null, null, null, itemElements[1]]
-        ]
+        // 计算偏移量以将网格居中
+        const offsetX = (canvas.width - gridSize) / 2;
+        const offsetY = (canvas.height - cellSize) / 2;
 
-        if (itemElements[0]) {
-            itemElements[0].style.top = `${11}px`;
-            itemElements[0].style.left = `${11}px`;
-        }
+        // 绘制网格
+        for (let col = 0; col < gridCols; col++) {
+            let startX = offsetX + col * cellSize;
+            let startY = offsetY;
 
-        if (itemElements[1]) {
-            itemElements[1].style.top = `${11 + MiGong.add * 3}px`;
-            itemElements[1].style.left = `${11 + MiGong.add * 3}px`;
+            // 绘制方格
+            ctx.strokeRect(startX, startY, cellSize, cellSize);
+
+            // 计算并标注中心坐标（可选）
+            let centerX = startX + (cellSize / 2);
+            let centerY = startY + (cellSize / 2);
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`(${centerX.toFixed(2)}, ${centerY.toFixed(2)})`, centerX, centerY);
         }
     }
 
     if (diff === 1) {
-        MiGong.need = 2;
-        MiGong.degree = 0;
-        MiGong.xLocation = 1;
-        MiGong.yLocation = 1;
-        for (let i = 0; i < 4; i++)
-            if (itemElements[i]) itemElements[i].hidden = false;
-        MiGong.map = [
-            [0, 0, 0, 8],
-            [0, 1, 0, 0],
-            [0, 0, 9, 0],
-            [8, 0, 0, 0] // 8饼干
-        ];
+        // 定义网格参数
+        const gridRows = 2;
+        const gridCols = 5;
 
-        MiGong.mapElement = [
-            [null, null, null, itemElements[2]],
-            [null, itemElements[0], null, null],
-            [null, null, itemElements[1], null],
-            [itemElements[3], null, null, null]
-        ]
+        // 计算每个单元格的边长，以保证正方形形状
+        const cellSize = Math.min(canvas.width / gridCols, canvas.height / gridRows);
 
-        if (itemElements[0]) {
-            itemElements[0].style.top = `${11 + MiGong.add}px`;
-            itemElements[0].style.left = `${11 + MiGong.add}px`;
-        }
+        // 计算偏移量以将网格居中
+        const offsetX = (canvas.width - cellSize * gridCols) / 2;
+        const offsetY = (canvas.height - cellSize * gridRows) / 2;
 
-        if (itemElements[1]) {
-            itemElements[1].style.top = `${11 + MiGong.add * 2}px`;
-            itemElements[1].style.left = `${11 + MiGong.add * 2}px`;
-        }
+        // 绘制网格
+        for (let row = 0; row < gridRows; row++) {
+            for (let col = 0; col < gridCols; col++) {
+                let startX = offsetX + col * cellSize;
+                let startY = offsetY + row * cellSize;
 
-        if (itemElements[2]) {
-            itemElements[2].style.top = `${11}px`;
-            itemElements[2].style.left = `${11 + MiGong.add * 3}px`;
-        }
+                // 绘制方格
+                ctx.strokeRect(startX, startY, cellSize, cellSize);
 
-        if (itemElements[3]) {
-            itemElements[3].style.top = `${11 + MiGong.add * 3}px`;
-            itemElements[3].style.left = `${11}px`;
+                // 计算并标注中心坐标（可选）
+                let centerX = startX + (cellSize / 2);
+                let centerY = startY + (cellSize / 2);
+                ctx.fillStyle = 'black';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`(${centerX.toFixed(2)}, ${centerY.toFixed(2)})`, centerX, centerY);
+            }
         }
     }
 
     if (diff === 2) {
-        MiGong.need = 2;
-        MiGong.degree = 0;
-        MiGong.xLocation = 0;
-        MiGong.yLocation = 3;
-        for (let i = 0; i < 6; i++)
-            if (itemElements[i]) itemElements[i].hidden = false;
-        MiGong.map = [
-            [0, 0, 8, 0],
-            [0, 0, 0, 7],
-            [0, 8, 7, 9],
-            [1, 0, 0, 0] // 7障碍物
-        ];
+        // 定义网格参数
+        const gridRows = 12;
+        const gridCols = 12;
 
-        MiGong.mapElement = [
-            [null, null, itemElements[2], null],
-            [null, null, null, itemElements[4]],
-            [null, itemElements[3], itemElements[5], itemElements[1]],
-            [itemElements[0], null, null, null]
-        ];
+        // 计算每个单元格的边长，以保证正方形形状
+        const cellSize = Math.min(canvas.width / gridCols, canvas.height / gridRows);
 
-        if (itemElements[0]) {
-            itemElements[0].style.top = `${11 + MiGong.add * 3}px`;
-            itemElements[0].style.left = `${11}px`;
-        }
+        // 计算偏移量以将网格居中
+        const offsetX = (canvas.width - cellSize * gridCols) / 2;
+        const offsetY = (canvas.height - cellSize * gridRows) / 2;
 
-        if (itemElements[1]) {
-            itemElements[1].style.top = `${11 + MiGong.add * 2}px`;
-            itemElements[1].style.left = `${11 + MiGong.add * 3}px`;
-        }
+        // 绘制网格
+        for (let row = 0; row < gridRows; row++) {
+            for (let col = 0; col < gridCols; col++) {
+                let startX = offsetX + col * cellSize;
+                let startY = offsetY + row * cellSize;
 
-        if (itemElements[2]) {
-            itemElements[2].style.top = `${11}px`;
-            itemElements[2].style.left = `${11 + MiGong.add * 2}px`;
-        }
+                // 绘制方格
+                ctx.strokeRect(startX, startY, cellSize, cellSize);
 
-        if (itemElements[3]) {
-            itemElements[3].style.top = `${11 + MiGong.add * 2}px`;
-            itemElements[3].style.left = `${11 + MiGong.add}px`;
-        }
+                // 计算并标注中心坐标（可选）
+                let centerX = startX + (cellSize / 2);
+                let centerY = startY + (cellSize / 2);
 
-        if (itemElements[4]) {
-            itemElements[4].style.top = `${11 + MiGong.add}px`;
-            itemElements[4].style.left = `${11 + MiGong.add * 3}px`;
-        }
+                // 设置字体大小
+                const fontSize = 5; // 你可以根据需要调整字体大小
+                ctx.font = `${fontSize}px Arial`;
+                ctx.fillStyle = 'black';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
 
-        if (itemElements[5]) {
-            itemElements[5].style.top = `${11 + MiGong.add * 2}px`;
-            itemElements[5].style.left = `${11 + MiGong.add * 2}px`;
+                ctx.fillText(`(${centerX.toFixed(2)}, ${centerY.toFixed(2)})`, centerX, centerY);
+            }
         }
     }
 }
@@ -254,7 +217,7 @@ function turn(addDegree) {
 }
 
 function highlightBlock(id) {
-    workspace.workspace.highlightBlock(id);
+    gameWorkspace.workspace.highlightBlock(id);
 }
 
 function checkStatus() {

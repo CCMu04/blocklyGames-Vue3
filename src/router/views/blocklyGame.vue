@@ -7,7 +7,7 @@ import {useStorage} from "@/store/useStorage";
 import {initElement} from "@/blocks/js/initElement";
 import {ElMessage} from "element-plus";
 import {MiGong} from "@/blocks/action/MiGong";
-import {workspace} from "@/blocks/js/workspace";
+import {gameWorkspace} from "@/blocks/js/gameWorkspace";
 import {javascriptGenerator} from "blockly/javascript";
 import router from "@/router/router";
 
@@ -19,7 +19,7 @@ const toolboxDiff = ref([]);
 
 initData();
 onMounted(() => {
-  workspace.workspace = Blockly.inject('blocklyDiv', {toolbox: toolbox.value});
+  gameWorkspace.workspace = Blockly.inject('blocklyDiv', {toolbox: toolbox.value});
   selectDiff(0);
 });
 
@@ -27,7 +27,7 @@ function selectDiff(diff) {
   initElement(game.value.id, diff);
   selectedNumber.value = diff;
   toolbox.value = toolboxDiff.value[selectedNumber.value];
-  workspace.workspace.updateToolbox(toolbox.value);
+  gameWorkspace.workspace.updateToolbox(toolbox.value);
 }
 
 function initData() {
@@ -59,7 +59,7 @@ function runCode() {
   javascriptGenerator.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
   javascriptGenerator.addReservedWords('highlightBlock');
   javascriptGenerator.addReservedWords('code');
-  let code = javascriptGenerator.workspaceToCode(workspace.workspace);
+  let code = javascriptGenerator.workspaceToCode(gameWorkspace.workspace);
   if (game.value.id === 1) MiGong.run(code);
 }
 

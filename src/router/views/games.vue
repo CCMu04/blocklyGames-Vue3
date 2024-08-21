@@ -21,7 +21,7 @@ Promise.resolve(getGames)
 function setGame(game) {
   let json = JSON.stringify(game);
   myLocalStorage.setItem("game", json);
-  router.push('/blocklyGame');
+  router.push('/blocklyGameV2');
 }
 </script>
 
