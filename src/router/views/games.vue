@@ -12,9 +12,6 @@ Promise.resolve(getGames)
     .then(response => {
       if (response.data.code === 1) {
         games.value = response.data.data;
-
-        // 测试
-        setGame(games.value[0]);
       }
       else games.value = [];
     }).catch(error => {

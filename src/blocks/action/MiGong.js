@@ -1,5 +1,6 @@
 import Interpreter from 'js-interpreter';
 import {ElMessage, ElMessageBox} from "element-plus";
+import {workspace} from "@/blocks/js/workspace";
 
 export const MiGong = {};
 
@@ -180,6 +181,12 @@ MiGong.initApi = function (interpreter, globalObject) {
     };
     interpreter.setProperty(globalObject, 'turn',
         interpreter.createNativeFunction(wrapper));
+
+    wrapper = function (id) {
+        return highlightBlock(id);
+    };
+    interpreter.setProperty(globalObject, 'highlightBlock',
+        interpreter.createNativeFunction(wrapper));
 }
 
 MiGong.step = function (interpreter) {
@@ -224,14 +231,8 @@ function move() {
         MiGong.yChange--;
     }
 
-    console.log(nowDegree % 4 + " " + MiGong.xLocation + " " + MiGong.yLocation);
     checkStatus();
     if (MiGong.play) setTransform();
-}
-
-function turn(addDegree) {
-    MiGong.degree += addDegree;
-    setTransform();
 }
 
 function setTransform() {
@@ -245,6 +246,15 @@ function setTransform() {
             rotate(
                 ${90 * MiGong.degree}deg
             )`;
+}
+
+function turn(addDegree) {
+    MiGong.degree += addDegree;
+    setTransform();
+}
+
+function highlightBlock(id) {
+    workspace.workspace.highlightBlock(id);
 }
 
 function checkStatus() {

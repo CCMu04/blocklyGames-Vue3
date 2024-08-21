@@ -1,39 +1,44 @@
 <script setup>
-import {onMounted, ref} from "vue";
-import {toolboxs} from "@/blocks/js/toolboxs";
 import * as Blockly from "blockly";
-import {defineMiGongBlocks} from "@/blocks/MiGong";
+import {onMounted, ref} from "vue";
+import {themes} from "@/blocks/js/themes";
+import {toolboxs} from "@/blocks/js/toolboxs";
+import {workspace} from "@/blocks/js/workspace";
 
-const videoShow = ref(false); // 视频界面开关
-const diffSelected = ref(false); // 关卡难度选择开关
-const isRun = ref(false); // 判断是否运行的状态
+const videoShow = ref(false);
+const diffSelected = ref(false);
+const isRun = ref(false);
+const drawerStyle = {
+  'background': 'linear-gradient(135deg, #81c784, #4caf50)',
+  'padding': '20px',
+  'box-shadow': '0 4px 8px rgba(0, 0, 0, 0.1)',
+  'border-radius': '10px',
+  'display': 'flex',
+  'justify-content': 'center',
+  'align-items': 'center'
+}
 
-let workspace = null;
 let toolbox = toolboxs[0].toolbox[0];
 
 onMounted(() => {
-  let screenWidth = window.innerWidth;
   let screenHeight = window.innerHeight;
 
   let allBox = document.getElementById("allBox");
-  allBox.style.minWidth = `${screenWidth - 100}px`;
+  allBox.style.minWidth = `1280px`;
+  allBox.style.minHeight = `720px`;
   allBox.style.height = `${screenHeight - 50}px`;
 
-  defineMiGongBlocks();
-  workspace = Blockly.inject('blocklyDiv', {toolbox: toolbox});
-
-  let canvas = document.getElementById("canvas");
-  let ctx = canvas.getContext("2d");
-
-  canvas.width = canvas.clientWidth;
-  canvas.height = canvas.clientHeight;
-
-  let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  gradient.addColorStop(0, '#87CEEB');
-  gradient.addColorStop(1, '#3CB371');
-
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  workspace.workspace = Blockly.inject('blocklyDiv', {
+    toolbox: toolbox,
+    theme: themes.sftTheme,
+    move: {
+      scrollbars: {
+        horizontal: true,
+        vertical: true
+      },
+      drag: true
+    }
+  });
 });
 
 function runCode() {
@@ -54,15 +59,15 @@ const gameInfo = [
 <template>
   <!-- 左弹窗显示难度选择窗口 -->
   <el-drawer v-model="diffSelected" size="80" :show-close="false" :with-header="false" direction="ltr"
-             style="text-align: center;">
-    <div v-for="diff in gameInfo" :key="diff.id">
-      <el-button style="margin: 10px auto">{{ diff.diff }}</el-button>
+             :style="drawerStyle">
+    <div v-for="diff in gameInfo" :key="diff.id" class="button-container">
+      <el-button class="diff-button">{{ diff.diff }}</el-button>
     </div>
   </el-drawer>
 
   <div style="display: flex;" id="allBox">
     <!-- 视频组件 -->
-    <div id="videoBox" v-show="videoShow">视频</div>
+    <div id="videoBox" v-show="videoShow">video 暂未开发</div>
 
     <div id="workspace">
       <div style="display: flex; flex: 1;">
@@ -70,7 +75,7 @@ const gameInfo = [
           <canvas id="canvas"/>
         </div>
         <div id="toolBox">
-          <div id="controlPanel" style="margin: 20px; display: flex; gap: 20px; justify-content: flex-end;">
+          <div id="controlPanel">
             <el-button id="levelSelectButton" class="control-button" @click="diffSelected = !diffSelected"
                        :class="{ active: diffSelected }">关卡选择
             </el-button>
@@ -82,7 +87,7 @@ const gameInfo = [
         </div>
       </div>
 
-      <div style="display: flex; flex: 0 1 10vh; align-items: center; padding: 0 20px;" id="runBox">
+      <div id="runBox">
         <div style="flex-grow: 1;">
           <el-text style="color: #98FB98; font-weight: bold;">游戏简介</el-text>
         </div>
@@ -96,6 +101,10 @@ const gameInfo = [
 </template>
 
 <style scoped>
+* {
+  font-family: 'Noto Sans SC', 'ZCOOL KuaiLe', sans-serif;
+}
+
 #allBox {
   margin: 10px;
 }
@@ -115,14 +124,16 @@ const gameInfo = [
 
 #showBox {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top-left-radius: 8px;
+  background: linear-gradient(to bottom, #87CEEB, #3CB371);
 }
 
 #canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-  box-sizing: border-box;
-  border-top-left-radius: 8px;
+  width: 460px;
+  height: 460px;
 }
 
 #toolBox {
@@ -133,14 +144,21 @@ const gameInfo = [
   border-top-right-radius: 8px;
 }
 
+#controlPanel {
+  margin: 20px;
+  display: flex;
+  gap: 20px;
+  justify-content: flex-end;
+}
+
 .control-button {
   padding: 24px 24px;
   background: linear-gradient(135deg, #E0F7FA, #B2EBF2);
   color: #006064;
   border: none;
   border-radius: 10px;
-  font-size: 1.1rem;
-  font-weight: bold;
+  font-size: 1.2rem;
+  font-weight: bolder;
   transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
   box-shadow: 0 4px 8px rgba(0, 150, 136, 0.4);
 }
@@ -167,7 +185,6 @@ const gameInfo = [
   flex: 0 1 10vh;
   align-items: center;
   padding: 0 20px;
-  background-color: #8B4513;
   background-image: linear-gradient(45deg, #8B4513 25%, #A0522D 25%, #A0522D 50%, #8B4513 50%, #8B4513 75%, #A0522D 75%, #A0522D);
   background-size: 50px 50px;
   border-bottom-left-radius: 8px;
@@ -189,7 +206,7 @@ const gameInfo = [
   margin: 5px 10px;
   box-shadow: 0 4px 6px rgba(0, 128, 0, 0.2);
   font-size: 1.2rem;
-  font-weight: bold;
+  font-weight: bolder;
   transition: background 0.3s ease, transform 0.2s ease;
 }
 
@@ -215,5 +232,37 @@ const gameInfo = [
 .resetButton:hover {
   background: linear-gradient(135deg, #FFA500, #FF4500);
   transform: translateY(-2px);
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.diff-button {
+  background: linear-gradient(145deg, #6a994e, #386641);
+  color: #fff;
+  font-weight: bolder;
+  font-size: 18px;
+  margin: 10px 0;
+  padding: 12px 20px;
+  border-radius: 30px;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+.diff-button:hover {
+  background: linear-gradient(145deg, #7ebc59, #4b9c42);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+}
+
+.diff-button:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
 }
 </style>

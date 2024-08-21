@@ -1,10 +1,6 @@
 <script setup>
 import {ref} from "vue";
 import {ElMessage} from "element-plus";
-import router from "@/router/router";
-
-// 测试
-router.push('games');
 
 const images = [
   "/img/index/image1.png",

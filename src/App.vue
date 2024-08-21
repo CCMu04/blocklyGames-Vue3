@@ -10,11 +10,15 @@ import Footer from './components/Footer.vue'
       <component :is="Component"/>
     </keep-alive>
   </router-view>
-  <Footer/>
+  <!--  <Footer/>-->
 </template>
 
 <style>
 * {
   margin: 0;
+}
+
+.blocklyMainBackground {
+  stroke-width: 0;
 }
 </style>
