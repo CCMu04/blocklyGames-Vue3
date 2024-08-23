@@ -7,7 +7,7 @@ Blockly.Blocks['turn_left'] = {
             .appendField("向左转向");
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
-        this.setColour(270);
+        this.setColour(160);
         this.setTooltip("");
         this.setHelpUrl("");
     }
@@ -23,7 +23,7 @@ Blockly.Blocks['turn_right'] = {
             .appendField("向右转向");
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
-        this.setColour(270);
+        this.setColour(160);
         this.setTooltip("");
         this.setHelpUrl("");
     }
@@ -44,7 +44,7 @@ Blockly.Blocks['move'] = {
         this.setInputsInline(true);
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
-        this.setColour(270);
+        this.setColour(160);
         this.setTooltip("");
         this.setHelpUrl("");
     }

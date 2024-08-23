@@ -4,13 +4,9 @@ import Footer from './components/Footer.vue'
 </script>
 
 <template>
-  <Header/>
-  <router-view v-slot="{ Component }">
-    <keep-alive>
-      <component :is="Component"/>
-    </keep-alive>
-  </router-view>
-  <!--  <Footer/>-->
+  <Header v-show="$route.meta.showHeaderFooter"/>
+  <RouterView />
+  <Footer v-show="$route.meta.showHeaderFooter"/>
 </template>
 
 <style>
@@ -20,5 +16,23 @@ import Footer from './components/Footer.vue'
 
 .blocklyMainBackground {
   stroke-width: 0;
+}
+
+.gameLoading {
+  .el-loading-spinner {
+    .circular {
+      background-image: url('/public/img/loading.gif');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    .el-loading-text {
+      color: rgba(161, 255, 161, 0.79);
+      font-size: larger;
+      font-weight: bolder;
+      font-family: 'Noto Sans SC', 'ZCOOL KuaiLe', sans-serif;
+    }
+  }
 }
 </style>

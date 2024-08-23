@@ -1,58 +1,104 @@
 <script setup>
-import {onMounted, ref, watch} from "vue";
-import {toolboxs} from '@/blocks/js/toolboxs';
 import * as Blockly from "blockly";
+import {themes} from "@/blocks/js/themes";
+import {computed, onMounted, ref, watch} from "vue";
+import {toolboxs} from "@/blocks/js/toolboxs";
+import {gameWorkspace} from "@/blocks/js/gameWorkspace";
+import {gameStatus} from "@/blocks/js/gameStatus";
 import {myLocalStorage} from "@/store/myLocalStorage";
+import router from "@/router/router";
+import {ElLoading, ElMessage} from "element-plus";
+import {javascriptGenerator} from "blockly/javascript";
+import {MiGong} from "@/blocks/action/MiGong";
 import {useStorage} from "@/store/useStorage";
 import {initElement} from "@/blocks/js/initElement";
-import {ElMessage} from "element-plus";
-import {MiGong} from "@/blocks/action/MiGong";
-import {gameWorkspace} from "@/blocks/js/gameWorkspace";
-import {javascriptGenerator} from "blockly/javascript";
-import router from "@/router/router";
 
-const game = ref({});
 const gameInfo = ref([{}]);
-const toolbox = ref('');
+const videoShow = ref(false);
 const selectedNumber = ref(0);
-const toolboxDiff = ref([]);
+const diffSelected = ref(false);
+const isRun = computed(() => gameStatus.isRun);
+const drawerStyle = {
+  'background': 'linear-gradient(135deg, #81c784, #4caf50)',
+  'padding': '20px',
+  'box-shadow': '0 4px 8px rgba(0, 0, 0, 0.1)',
+  'border-radius': '10px',
+  'display': 'flex',
+  'justify-content': 'center',
+  'align-items': 'center'
+}
+
+let game = {}; // 游戏信息
+let toolbox = null;
+let toolboxDiff = []; // 关卡难度
 
 initData();
 onMounted(() => {
-  gameWorkspace.workspace = Blockly.inject('blocklyDiv', {toolbox: toolbox.value});
+  let screenWidth = window.innerWidth;
+  let screenHeight = window.innerHeight;
+  let allBox = document.getElementById("allBox");
+  allBox.style.minWidth = `1280px`;
+  allBox.style.minHeight = `720px`;
+  allBox.style.width = `${screenWidth}px`;
+  allBox.style.height = `${screenHeight}px`;
+
+  gameWorkspace.workspace = Blockly.inject('blocklyDiv', {
+    toolbox: toolbox,
+    theme: themes.sftTheme,
+    move: {
+      scrollbars: {
+        horizontal: true,
+        vertical: true
+      },
+      drag: true,
+      wheel: true
+    }
+  });
+
   selectDiff(0);
 });
 
-function selectDiff(diff) {
-  initElement(game.value.id, diff);
-  selectedNumber.value = diff;
-  toolbox.value = toolboxDiff.value[selectedNumber.value];
-  gameWorkspace.workspace.updateToolbox(toolbox.value);
+function initData() {
+  if (myLocalStorage.getItem("game")) {
+    game = JSON.parse(myLocalStorage.getItem("game"));
+    let axios = require('axios');
+    let data = new FormData();
+    data.append("gameId", game.id);
+    let getGameInfo = axios.get(`https://api.chcmu.xyz/getGameInfo?gameId=${game.id}`);
+    let loading = ElLoading.service({
+      lock: true,
+      text: '加载中...',
+      customClass: 'gameLoading',
+      spinner: `<i></i>`,
+      background: 'rgba(0, 0, 0, 0.7)',
+    });
+    Promise.resolve(getGameInfo)
+        .then(response => {
+          if (response.data.code === 1) {
+            gameInfo.value = response.data.data;
+            loading.close();
+          } else ElMessage({type: "warning", message: response.data.msg, showClose: true});
+        }).catch(error => {
+      console.log(error);
+    });
+
+    // 获取关卡工具栏信息
+    for (let i = 0; i < toolboxs.length; i++)
+      if (toolboxs[i].id === game.id) toolboxDiff = toolboxs[i].toolbox;
+    selectedNumber.value = 0; // 初始设定为第一关
+    toolbox = toolboxDiff[selectedNumber.value];
+    document.title = game.name;
+  } else {
+    router.back();
+  }
 }
 
-function initData() {
-  if (myLocalStorage.getItem("game"))
-    game.value = JSON.parse(myLocalStorage.getItem("game"));
-
-  let axios = require('axios');
-  let data = new FormData();
-  data.append("gameId", game.value.id);
-  let getGameInfo = axios.get(`https://api.chcmu.xyz/getGameInfo?gameId=${game.value.id}`);
-  Promise.resolve(getGameInfo)
-      .then(response => {
-        if (response.data.code === 1) {
-          gameInfo.value = response.data.data;
-        } else ElMessage({type: "warning", message: response.data.msg, showClose: true});
-      }).catch(error => {
-    console.log(error);
-  });
-
-  // 获取关卡工具栏信息
-  for (let i = 0; i < toolboxs.length; i++)
-    if (toolboxs[i].id === game.value.id) toolboxDiff.value = toolboxs[i].toolbox;
-  selectedNumber.value = 0; // 初始设定为第一关
-  toolbox.value = toolboxDiff.value[selectedNumber.value];
-  document.title = game.value.name;
+function selectDiff(diff) {
+  initElement(game.id, diff);
+  selectedNumber.value = diff;
+  toolbox = toolboxDiff[selectedNumber.value];
+  gameWorkspace.workspace.clear();
+  gameWorkspace.workspace.updateToolbox(toolbox);
 }
 
 function runCode() {
@@ -60,7 +106,7 @@ function runCode() {
   javascriptGenerator.addReservedWords('highlightBlock');
   javascriptGenerator.addReservedWords('code');
   let code = javascriptGenerator.workspaceToCode(gameWorkspace.workspace);
-  if (game.value.id === 1) MiGong.run(code);
+  if (game.id === 1) MiGong.run(code);
 }
 
 watch((useStorage("game")), () => {
@@ -70,111 +116,220 @@ watch((useStorage("game")), () => {
 </script>
 
 <template>
-  <div style="width: 100%; margin: 80px 0">
-    <el-card style="width: 1000px; margin: 10px auto;" body-style="display: flex">
-      <div v-for="(game, n) in gameInfo" :key="n">
-        <el-button class="selectDiff" @click="selectDiff(n)">{{ game.diff }}</el-button>
-      </div>
-      <div style="flex-grow: 1"/>
-      <el-text size="large">{{ `${game.name} 第${gameInfo[selectedNumber].diff}关` }}</el-text>
-    </el-card>
-    <el-card style="width: 1000px; height: 500px; margin: 10px auto;" body-style="display: flex;">
-      <div style="width: 40%">
-        <div style="width: 350px; height: 350px; margin: 0 auto; background-size: cover" id="backgroundDiv">
+  <!-- 左弹窗显示难度选择窗口 -->
+  <el-drawer v-model="diffSelected" size="80" :show-close="false" :with-header="false" direction="ltr"
+             :style="drawerStyle">
+    <div v-for="(diff, n) in gameInfo" :key="n" class="button-container">
+      <el-button class="diff-button" @click="selectDiff(n)">{{ diff.diff }}</el-button>
+    </div>
+  </el-drawer>
 
-          <div style="width: 350px; height: 350px; position: absolute" id="MiGong">
-            <div id="MiGongPlane"/>
-            <div id="MiGongEnd"/>
-            <div id="MiGongCookie1"/>
-            <div id="MiGongCookie2"/>
-            <div id="MiGongBlock1"/>
-            <div id="MiGongBlock2"/>
+  <div style="display: flex;" id="allBox">
+    <!-- 视频组件 -->
+    <div id="videoBox" v-show="videoShow">video 暂未开发</div>
+
+    <div id="workspace">
+      <div style="display: flex; flex: 1;">
+        <div id="showBox">
+          <canvas id="canvas"/>
+        </div>
+        <div id="toolBox">
+          <div id="controlPanel">
+            <el-button class="control-button" @click="router.push('/')">返回首页</el-button>
+            <el-button class="control-button" @click="diffSelected = !diffSelected"
+                       :class="{ active: diffSelected }">关卡选择
+            </el-button>
+            <el-button class="control-button" @click="videoShow = !videoShow"
+                       :class="{ active: videoShow }">视频教程
+            </el-button>
           </div>
+          <div id="blocklyDiv" style="flex-grow: 1;"/>
+        </div>
+      </div>
 
+      <div id="runBox">
+        <div style="flex-grow: 1;">
+          <el-text style="color: #98FB98; font-weight: bolder; font-size: 1.2rem;">
+            {{ gameInfo[selectedNumber].info }}
+          </el-text>
         </div>
-        <div style="margin: 20px">
-          <el-text>{{ gameInfo[selectedNumber].info }}</el-text>
+        <div id="buttonBox">
+          <el-button v-show="!isRun" @click="runCode" class="runButton">运行</el-button>
+          <el-button v-show="isRun" @click="initElement(game.id, selectedNumber);" class="runButton resetButton">重置
+          </el-button>
         </div>
       </div>
-      <div style="width: 60%; height: 460px;">
-        <div style="width: 100%; height: 90%;" id="blocklyDiv"/>
-        <div style="width: 100%; height: 10%; display: flex; margin-top: 10px">
-          <div style="flex-grow: 1"/>
-          <el-button style="width: 80px;" @click="runCode">运行</el-button>
-        </div>
-      </div>
-    </el-card>
+    </div>
   </div>
-
-  <el-button @click="router.push('/blocklyGameV2')">测试页面</el-button>
 </template>
 
 <style scoped>
-.selectDiff {
+* {
+  font-family: 'Noto Sans SC', 'ZCOOL KuaiLe', sans-serif;
+}
+
+#blocklyDiv {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  box-shadow: 0 4px 10px rgba(52, 76, 73, 0.55);
+  overflow: hidden;
+}
+
+#videoBox {
+  flex: 1;
+  margin-right: 5px;
+  border: 1px solid #bbb;
+}
+
+#workspace {
+  flex: 2;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+#showBox {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top-left-radius: 8px;
+  background: linear-gradient(to bottom, #87CEEB, #3CB371);
+}
+
+#canvas {
+  width: 460px;
+  height: 460px;
+}
+
+#toolBox {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: linear-gradient(to bottom, #87CEEB, #3CB371);
+  border-top-right-radius: 8px;
+}
+
+#controlPanel {
+  margin: 20px;
+  display: flex;
+  gap: 20px;
+  justify-content: flex-end;
+}
+
+.control-button {
+  padding: 24px 24px;
+  background: linear-gradient(135deg, #E0F7FA, #B2EBF2);
+  color: #006064;
+  border: none;
   border-radius: 10px;
-  width: 30px;
-  height: 30px;
-  margin-left: 15px;
+  font-size: 1.2rem;
+  font-weight: bolder;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 150, 136, 0.4);
 }
 
-#backgroundDiv {
-  border-radius: 10px;
-  border: 5px solid #bbb;
+.control-button:hover {
+  background: linear-gradient(135deg, #B3E5FC, #81D4FA);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 150, 136, 0.6);
 }
 
-#MiGongPlane {
-  position: absolute;
-  border-style: dotted;
-  width: 70px;
-  height: 70px;
-  background-size: contain;
-  background-image: url("/public/img/games/MiGong/gogo.png");
-  transition: transform 1s ease-in-out;
-  transform-origin: center;
+.control-button.active {
+  background: linear-gradient(135deg, #4FC3F7, #039BE5);
+  transition: background 0.5s ease, border-color 0.3s ease;
 }
 
-#MiGongEnd {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  background-size: contain;
-  background-image: url("/public/img/games/MiGong/end.png");
-  transition: transform 1s ease-in-out;
+.control-button.active:hover {
+  background: linear-gradient(135deg, #0288D1, #0277BD);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 100, 100, 0.8);
 }
 
-#MiGongCookie1 {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  background-size: contain;
-  background-image: url("/public/img/games/MiGong/cookie.png");
-  transition: transform 1s ease-in-out;
+#runBox {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  background-image: linear-gradient(45deg, #8B4513 25%, #A0522D 25%, #A0522D 50%, #8B4513 50%, #8B4513 75%, #A0522D 75%, #A0522D);
+  background-size: 50px 50px;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
-#MiGongCookie2 {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  background-size: contain;
-  background-image: url("/public/img/games/MiGong/cookie.png");
-  transition: transform 1s ease-in-out;
+#buttonBox {
+  margin: 6px auto 6px 40px;
+  background-color: rgba(178, 232, 178, 0.44);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 128, 0, 0.3);
 }
 
-#MiGongBlock1 {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  background-size: contain;
-  background-image: url("/public/img/games/MiGong/block.png");
-  transition: transform 1s ease-in-out;
+.runButton {
+  background: linear-gradient(135deg, #98FB98, #8FBC8F);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  margin: 5px 10px;
+  box-shadow: 0 4px 6px rgba(0, 128, 0, 0.2);
+  font-size: 1.2rem;
+  font-weight: bolder;
+  transition: background 0.3s ease, transform 0.2s ease;
+  height: 4.8rem;
+  width: 7.2rem;
 }
 
-#MiGongBlock2 {
-  position: absolute;
-  width: 70px;
-  height: 70px;
-  background-size: contain;
-  background-image: url("/public/img/games/MiGong/block.png");
-  transition: transform 1s ease-in-out;
+.runButton:hover {
+  background: linear-gradient(135deg, #36a270, #2f8a5c);
+  transform: translateY(-2px);
+}
+
+.runButton:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.runButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.resetButton {
+  background: linear-gradient(135deg, #FFD700, #FF8C00);
+}
+
+.resetButton:hover {
+  background: linear-gradient(135deg, #FFA500, #FF4500);
+  transform: translateY(-2px);
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.diff-button {
+  background: linear-gradient(145deg, #6a994e, #386641);
+  color: #fff;
+  font-weight: bolder;
+  font-size: 18px;
+  margin: 10px 0;
+  padding: 12px 20px;
+  border-radius: 30px;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+.diff-button:hover {
+  background: linear-gradient(145deg, #7ebc59, #4b9c42);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+}
+
+.diff-button:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
 }
 </style>

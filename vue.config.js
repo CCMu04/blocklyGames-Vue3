@@ -10,6 +10,8 @@ module.exports = defineConfig({
                 "vm": require.resolve("vm-browserify")
             }
         },
-        plugins: [new NodePolyfillPlugin()]
+        plugins: [
+            new NodePolyfillPlugin()
+        ]
     },
 })

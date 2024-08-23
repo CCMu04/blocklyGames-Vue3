@@ -8,7 +8,8 @@ export default createRouter({
             name: 'index',
             component: () => import('./views/index.vue'),
             meta: {
-                title: '首页'
+                title: '首页',
+                showHeaderFooter: true
             }
         },
         {
@@ -16,7 +17,8 @@ export default createRouter({
             name: 'games',
             component: () => import('./views/games.vue'),
             meta: {
-                title: '游戏合集'
+                title: '游戏合集',
+                showHeaderFooter: true
             }
         },
         {
@@ -24,18 +26,17 @@ export default createRouter({
             name: 'login',
             component: () => import('./views/login.vue'),
             meta: {
-                title: '登录'
+                title: '登录',
+                showHeaderFooter: true
             }
         },
         {
             path: '/blocklyGame',
             name: 'blocklyGame',
             component: () => import('./views/blocklyGame.vue'),
-        },
-        {
-            path: '/blocklyGameV2',
-            name: 'blocklyGameV2',
-            component: () => import('./views/blocklyGamev2.vue'),
+            meta: {
+                showHeaderFooter: false
+            }
         }
     ]
 })

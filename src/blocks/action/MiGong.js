@@ -1,218 +1,197 @@
 import Interpreter from 'js-interpreter';
 import {ElMessage, ElMessageBox} from "element-plus";
 import {gameWorkspace} from "@/blocks/js/gameWorkspace";
+import {gameStatus} from "@/blocks/js/gameStatus";
+import {onMounted} from "vue";
 
 export const MiGong = {};
 
+/*  0 主角
+    1 出口
+    2 道路
+    3 障碍
+    4 宝藏
+    5 增益道具 - 待定
+    6 减益道具 - 待定
+*/
+
+MiGong.resPath = '/img/games/MiGong';
+MiGong.resource = [`${MiGong.resPath}/0.png`, `${MiGong.resPath}/1.png`, `${MiGong.resPath}/2.png`, `${MiGong.resPath}/3.png`, `${MiGong.resPath}/4.png`]
+
 MiGong.pid = 0;
-MiGong.diff = 0;
-MiGong.add = 87;
 MiGong.pause = 200;
-MiGong.play = false;
 MiGong.name = "MiGong";
-MiGong.elements = [
-    "MiGongPlane", "MiGongEnd",
-    "MiGongCookie1", "MiGongCookie2",
-    "MiGongBlock1", "MiGongBlock2"
-]
 
-MiGong.need = 0;
-MiGong.map = [[]];
-MiGong.degree = 0;
-MiGong.xChange = 0;
-MiGong.yChange = 0;
-MiGong.xLocation = 0;
-MiGong.yLocation = 0;
-MiGong.mapElement = [[]];
+MiGong.map = [[]]; // 地图
+MiGong.needCoin = 0;
+MiGong.mapPosition = [[]]; // 地图坐标 -> 针对canvas组件
+MiGong.imgComponent = null;
 
+const info = { // 人物基础信息
+    x: 0, y: 0, degree: 0, getCoin: 0
+};
+
+const diffInfo = [{
+    map: [[0, 2, 2, 2, 1]], needCoin: 0, firstDegree: 0,
+}, {
+    map: [[0, 2, 2, 2, 3], [3, 2, 2, 2, 1]], needCoin: 0, firstDegree: 0,
+}, {
+    map: [[], [], [], [], [], [], [], [], [], [], [], []], needCoin: 3, firstDegree: 0,
+}];
+
+const transformInfo = {
+    x: 0,
+    y: 0,
+    degree: 0
+}
+
+MiGong.initImage = function () {
+    MiGong.imgComponent = new Array(MiGong.resource.length);
+    for (let i = 0; i < MiGong.imgComponent.length; i++) {
+        MiGong.imgComponent[i] = new Image();
+        MiGong.imgComponent[i].src = MiGong.resource[i];
+    }
+}
+
+let canvas, ctx;
+let cellSize = 0;
+let lastCanvasImage = null;
 MiGong.init = function (diff) {
-    let canvas = document.getElementById("canvas");
-    let ctx = canvas.getContext("2d");
+    canvas = document.getElementById("canvas");
+    if (canvas) ctx = canvas.getContext("2d");
     if (!canvas || !ctx) return;
     canvas.width = 460;
     canvas.height = 460;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (diff === 0) {
-        // 定义网格参数
-        const gridRows = 1;
-        const gridCols = 5;
-        const gridSize = 450; // 网格的总宽度
-        const cellSize = gridSize / gridCols; // 每个单元格的宽度
+    info.getCoin = 0;
+    MiGong.map = diffInfo[diff].map;
+    info.degree = diffInfo[diff].firstDegree;
+    MiGong.needCoin = diffInfo[diff].needCoin;
+    MiGong.setMap(canvas, ctx, MiGong.map.length, MiGong.map[0].length);
 
-        // 计算偏移量以将网格居中
-        const offsetX = (canvas.width - gridSize) / 2;
-        const offsetY = (canvas.height - cellSize) / 2;
+    transformInfo.x = MiGong.mapPosition[info.x][info.y].x;
+    transformInfo.y = MiGong.mapPosition[info.y][info.y].y;
+    transformInfo.degree = info.degree * 60;
 
-        // 绘制网格
-        for (let col = 0; col < gridCols; col++) {
-            let startX = offsetX + col * cellSize;
-            let startY = offsetY;
-
-            // 绘制方格
-            ctx.strokeRect(startX, startY, cellSize, cellSize);
-
-            // 计算并标注中心坐标（可选）
-            let centerX = startX + (cellSize / 2);
-            let centerY = startY + (cellSize / 2);
-            ctx.fillStyle = 'black';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(`(${centerX.toFixed(2)}, ${centerY.toFixed(2)})`, centerX, centerY);
-        }
-    }
-
-    if (diff === 1) {
-        // 定义网格参数
-        const gridRows = 2;
-        const gridCols = 5;
-
-        // 计算每个单元格的边长，以保证正方形形状
-        const cellSize = Math.min(canvas.width / gridCols, canvas.height / gridRows);
-
-        // 计算偏移量以将网格居中
-        const offsetX = (canvas.width - cellSize * gridCols) / 2;
-        const offsetY = (canvas.height - cellSize * gridRows) / 2;
-
-        // 绘制网格
-        for (let row = 0; row < gridRows; row++) {
-            for (let col = 0; col < gridCols; col++) {
-                let startX = offsetX + col * cellSize;
-                let startY = offsetY + row * cellSize;
-
-                // 绘制方格
-                ctx.strokeRect(startX, startY, cellSize, cellSize);
-
-                // 计算并标注中心坐标（可选）
-                let centerX = startX + (cellSize / 2);
-                let centerY = startY + (cellSize / 2);
-                ctx.fillStyle = 'black';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(`(${centerX.toFixed(2)}, ${centerY.toFixed(2)})`, centerX, centerY);
-            }
-        }
-    }
-
-    if (diff === 2) {
-        // 定义网格参数
-        const gridRows = 12;
-        const gridCols = 12;
-
-        // 计算每个单元格的边长，以保证正方形形状
-        const cellSize = Math.min(canvas.width / gridCols, canvas.height / gridRows);
-
-        // 计算偏移量以将网格居中
-        const offsetX = (canvas.width - cellSize * gridCols) / 2;
-        const offsetY = (canvas.height - cellSize * gridRows) / 2;
-
-        // 绘制网格
-        for (let row = 0; row < gridRows; row++) {
-            for (let col = 0; col < gridCols; col++) {
-                let startX = offsetX + col * cellSize;
-                let startY = offsetY + row * cellSize;
-
-                // 绘制方格
-                ctx.strokeRect(startX, startY, cellSize, cellSize);
-
-                // 计算并标注中心坐标（可选）
-                let centerX = startX + (cellSize / 2);
-                let centerY = startY + (cellSize / 2);
-
-                // 设置字体大小
-                const fontSize = 5; // 你可以根据需要调整字体大小
-                ctx.font = `${fontSize}px Arial`;
-                ctx.fillStyle = 'black';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-
-                ctx.fillText(`(${centerX.toFixed(2)}, ${centerY.toFixed(2)})`, centerX, centerY);
-            }
-        }
-    }
+    gameStatus.isRun = false;
 }
 
 MiGong.initApi = function (interpreter, globalObject) {
     let wrapper = function () {
         return move();
     };
-    interpreter.setProperty(globalObject, 'move',
-        interpreter.createNativeFunction(wrapper));
+    interpreter.setProperty(globalObject, 'move', interpreter.createNativeFunction(wrapper));
 
     wrapper = function (addDegree) {
         return turn(addDegree);
     };
-    interpreter.setProperty(globalObject, 'turn',
-        interpreter.createNativeFunction(wrapper));
+    interpreter.setProperty(globalObject, 'turn', interpreter.createNativeFunction(wrapper));
 
     wrapper = function (id) {
         return highlightBlock(id);
     };
-    interpreter.setProperty(globalObject, 'highlightBlock',
-        interpreter.createNativeFunction(wrapper));
+    interpreter.setProperty(globalObject, 'highlightBlock', interpreter.createNativeFunction(wrapper));
 }
 
 MiGong.step = function (interpreter) {
     let go = interpreter.step();
-    if (!go || !MiGong.play) {
-        if (MiGong.play)
-            setMessage('wrong', "似乎没有成功抵达终点，请再次尝试！");
-
+    if (!go || !gameStatus.isRun) {
+        setMessage('wrong', "似乎没有成功抵达终点 T.T！");
         clearInterval(MiGong.pid);
-        MiGong.init(MiGong.diff);
     }
 };
 
 MiGong.run = function (code) {
     let interpreter = new Interpreter(code, MiGong.initApi);
-    MiGong.play = true;
     MiGong.pid = setInterval(function () {
         MiGong.step(interpreter);
     }, MiGong.pause);
+    gameStatus.isRun = true;
 };
 
+MiGong.setMap = function (canvas, ctx, gridRows, gridCols) {
+    const drawAreaSize = 450;
+    cellSize = drawAreaSize / Math.max(gridRows, gridCols);
+    const offsetX = (canvas.width - (cellSize * gridCols)) / 2;
+    const offsetY = (canvas.height - (cellSize * gridRows)) / 2;
+    MiGong.mapPosition = Array.from({length: gridRows}, () => Array.from({length: gridCols}, () => ({})));
+
+    for (let row = 0; row < gridRows; row++) {
+        for (let col = 0; col < gridCols; col++) {
+            let startX = offsetX + col * cellSize;
+            let startY = offsetY + row * cellSize;
+            MiGong.mapPosition[row][col] = {x: startX, y: startY};
+            if (MiGong.map[row][col] !== 2) ctx.drawImage(MiGong.imgComponent[2], startX, startY, cellSize, cellSize);
+
+            if (MiGong.map[row][col] === 0) {
+                info.x = row;
+                info.y = col;
+                continue;
+            }
+
+            ctx.drawImage(MiGong.imgComponent[MiGong.map[row][col]], startX, startY, cellSize, cellSize);
+        }
+    }
+
+
+    lastCanvasImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(MiGong.imgComponent[0], MiGong.mapPosition[info.x][info.y].x, MiGong.mapPosition[info.x][info.y].y, cellSize, cellSize);
+}
+
 function move() {
-    let nowDegree = MiGong.degree;
-    while (nowDegree < 0) nowDegree += 4;
-    if (nowDegree % 4 === 0) {
-        MiGong.xLocation++;
-        MiGong.xChange++;
-    }
-
-    if (nowDegree % 4 === 1) {
-        MiGong.yLocation++;
-        MiGong.yChange++;
-    }
-
-    if (nowDegree % 4 === 2) {
-        MiGong.xLocation--;
-        MiGong.xChange--;
-    }
-
-    if (nowDegree % 4 === 3) {
-        MiGong.yLocation--;
-        MiGong.yChange--;
-    }
-
+    let degree = info.degree;
+    while (degree < 0) degree += 4;
+    if (degree % 4 === 0) info.y++;
+    if (degree % 4 === 1) info.x++;
+    if (degree % 4 === 2) info.y--;
+    if (degree % 4 === 3) info.x--;
     checkStatus();
-    if (MiGong.play) setTransform();
 }
 
 function setTransform() {
-    let planeElement = document.getElementById(MiGong.elements[0]);
-    if (planeElement)
-        planeElement.style.transform =
-            `translate(
-                ${MiGong.xChange * MiGong.add}px,
-                ${MiGong.yChange * MiGong.add}px
-            )
-            rotate(
-                ${90 * MiGong.degree}deg
-            )`;
+    const imgCenterX = cellSize / 2;
+    const imgCenterY = cellSize / 2;
+    const startX = transformInfo.x;
+    const startY = transformInfo.y;
+    const endX = MiGong.mapPosition[info.x][info.y].x;
+    const endY = MiGong.mapPosition[info.x][info.y].y;
+
+    let currentFrame = 0;
+    const totalFrames = 120;
+
+    const startAngle = transformInfo.degree * 90 * Math.PI / 180;
+    const endAngle = info.degree * 90 * Math.PI / 180;
+    const angleIncrement = (endAngle - startAngle) / totalFrames;
+    const translateXIncrement = (endX - startX) / totalFrames;
+    const translateYIncrement = (endY - startY) / totalFrames;
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.putImageData(lastCanvasImage, 0, 0);
+        ctx.save();
+        ctx.translate(startX + translateXIncrement * currentFrame + imgCenterX,
+            startY + translateYIncrement * currentFrame + imgCenterY);
+        ctx.rotate(startAngle + angleIncrement * currentFrame);
+        ctx.translate(-imgCenterX, -imgCenterY);
+        ctx.drawImage(MiGong.imgComponent[0], 0, 0, cellSize, cellSize);
+        ctx.restore();
+
+        currentFrame++;
+        if (currentFrame < totalFrames) {
+            requestAnimationFrame(animate);
+        } else {
+            transformInfo.x = endX;
+            transformInfo.y = endY;
+            transformInfo.degree = info.degree;
+        }
+    }
+
+    animate();
 }
 
 function turn(addDegree) {
-    MiGong.degree += addDegree;
+    info.degree += addDegree;
     setTransform();
 }
 
@@ -221,62 +200,47 @@ function highlightBlock(id) {
 }
 
 function checkStatus() {
-    if (MiGong.xLocation < 0 || MiGong.xLocation >= MiGong.map.length) {
-        setMessage('wrong', "似乎移动到了地图边界！");
-        MiGong.play = false;
+    setTransform();
+    if (info.x < 0 || info.y < 0) {
+        setMessage("wrong", "似乎走出了森林边界 T-T !");
+        clearInterval(MiGong.pid);
         return;
     }
 
-    if (MiGong.yLocation < 0 || MiGong.yLocation >= MiGong.map[0].length) {
-        setMessage('wrong', "似乎移动到了地图边界！");
-        MiGong.play = false;
+    if (info.x >= MiGong.map.length || info.y >= MiGong.map[0].length) {
+        setMessage("wrong", "似乎走出了森林边界 T-T !");
+        clearInterval(MiGong.pid);
         return;
     }
 
-    if (MiGong.map[MiGong.yLocation][MiGong.xLocation] === 7) {
-        setMessage('wrong', "飞机被障碍物阻挡！");
-        MiGong.play = false;
+    if (MiGong.map[info.x][info.y] === 1) {
+        if (info.getCoin === MiGong.needCoin) {
+            setMessage("success", `成功带着${MiGong.needCoin}个宝藏走出森林啦 $0$ !`);
+            clearInterval(MiGong.pid);
+        } else setMessage("notice", `森林中还有${MiGong.needCoin - info.getCoin}个宝藏还没有找到，不要错过了！`);
         return;
     }
 
-    if (MiGong.map[MiGong.yLocation][MiGong.xLocation] === 8) {
-        MiGong.need--;
-        MiGong.map[MiGong.yLocation][MiGong.xLocation] = 0;
-        if (MiGong.mapElement[MiGong.yLocation][MiGong.xLocation])
-            MiGong.mapElement[MiGong.yLocation][MiGong.xLocation].hidden = true;
-
-        setMessage('successInfo', `还需要吃${MiGong.need}个饼干即可前往终点！`);
+    if (MiGong.map[info.x][info.y] === 3) {
+        setMessage("wrong", "小心！差点迷失在灌木丛里了 @.@ !");
+        clearInterval(MiGong.pid);
         return;
     }
 
-    if (MiGong.map[MiGong.yLocation][MiGong.xLocation] === 9) {
-        if (MiGong.need === 0) {
-            setMessage('success', `你已通过 迷宫 的第 ${MiGong.diff + 1} 关！`);
-            if (MiGong.mapElement[MiGong.yLocation][MiGong.xLocation])
-                MiGong.mapElement[MiGong.yLocation][MiGong.xLocation].hidden = true;
-            MiGong.play = false;
-        } else setMessage('notice', `你还需要吃${MiGong.need}块饼干才能进入终点！`);
-    }
+    if (MiGong.map[info.x][info.y] === 4)
+        setMessage("notice", "我们成功地找到了1个宝藏！");
 }
 
 function setMessage(type, msg) {
-    if (type === 'notice')
-        ElMessage({
-            showClose: true,
-            type: "warning",
-            message: msg
-        });
+    if (type === 'notice') ElMessage({
+        showClose: true, type: "warning", message: msg
+    });
 
-    if (type === 'successInfo')
-        ElMessage({
-            showClose: true,
-            type: 'success',
-            message: msg
-        });
+    if (type === 'successInfo') ElMessage({
+        showClose: true, type: 'success', message: msg
+    });
 
-    if (type === 'wrong')
-        ElMessageBox.alert(msg, '发生错误').then().catch();
+    if (type === 'wrong') ElMessageBox.alert(msg, '发生错误').then().catch();
 
-    if (type === 'success')
-        ElMessageBox.alert(msg, '通关成功').then().catch();
+    if (type === 'success') ElMessageBox.alert(msg, '通关成功').then().catch();
 }

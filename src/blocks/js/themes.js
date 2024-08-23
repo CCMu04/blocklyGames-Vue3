@@ -13,7 +13,7 @@ themes.sftTheme = Blockly.Theme.defineTheme('SKY_AND_FOREST_THEME', {
     },
     'componentStyles': {
         workspaceBackgroundColour: '#E0F2F199',
-        flyoutBackgroundColour: '#E0F2F1',
+        flyoutBackgroundColour: '#E0F2F1DD',
         scrollbarColour: '#6F8F6F99',
     }
 });
