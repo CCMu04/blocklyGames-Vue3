@@ -5,7 +5,7 @@ import Footer from './components/Footer.vue'
 
 <template>
   <Header v-show="$route.meta.showHeaderFooter"/>
-  <RouterView />
+  <RouterView/>
   <Footer v-show="$route.meta.showHeaderFooter"/>
 </template>
 
@@ -14,8 +14,10 @@ import Footer from './components/Footer.vue'
   margin: 0;
 }
 
-.blocklyMainBackground {
-  stroke-width: 0;
+#blocklyDiv {
+  .blocklyMainBackground {
+    stroke-width: 0;
+  }
 }
 
 .gameLoading {

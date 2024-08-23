@@ -56,6 +56,33 @@ onMounted(() => {
   });
 
   selectDiff(0);
+
+  let isResizing = false;
+  const resizer = document.getElementById('resizer');
+  const videoBox = document.getElementById('videoBox');
+  const boxStyle = window.getComputedStyle(videoBox);
+  resizer.addEventListener('mousedown', () => {
+    isResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.addEventListener('mousemove', resizeDivs);
+    document.addEventListener('mouseup', stopResizing);
+  });
+
+  function resizeDivs(e) {
+    if (!isResizing) return;
+    const newLeftWidth = e.clientX;
+    let oldWidth = videoBox.clientWidth / boxStyle.flexGrow;
+    let flexValue = newLeftWidth / oldWidth;
+    if (flexValue < 0.3 || flexValue > 1) return;
+    videoBox.style.flex = flexValue;
+  }
+
+  function stopResizing() {
+    isResizing = false;
+    document.body.style.cursor = 'default';
+    document.removeEventListener('mousemove', resizeDivs);
+    document.removeEventListener('mouseup', stopResizing);
+  }
 });
 
 function initData() {
@@ -128,6 +155,12 @@ watch((useStorage("game")), () => {
     <!-- 视频组件 -->
     <div id="videoBox" v-show="videoShow">video 暂未开发</div>
 
+    <div id="resizer" v-show="videoShow">
+      <div id="resizer-button">
+        <span></span>
+      </div>
+    </div>
+
     <div id="workspace">
       <div style="display: flex; flex: 1;">
         <div id="showBox">
@@ -148,8 +181,9 @@ watch((useStorage("game")), () => {
       </div>
 
       <div id="runBox">
-        <div style="flex-grow: 1;">
-          <el-text style="color: #98FB98; font-weight: bolder; font-size: 1.2rem;">
+        <div
+            style="flex-grow: 1; background: linear-gradient(to bottom, #87CEEB44, #3CB37144); border-radius: 8px; padding: 10px;">
+          <el-text id="gameInfoText">
             {{ gameInfo[selectedNumber].info }}
           </el-text>
         </div>
@@ -165,7 +199,8 @@ watch((useStorage("game")), () => {
 
 <style scoped>
 * {
-  font-family: 'Noto Sans SC', 'ZCOOL KuaiLe', sans-serif;
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-weight: 400;
 }
 
 #blocklyDiv {
@@ -176,9 +211,57 @@ watch((useStorage("game")), () => {
 }
 
 #videoBox {
-  flex: 1;
-  margin-right: 5px;
-  border: 1px solid #bbb;
+  flex-grow: 0.8;
+}
+
+#resizer {
+  width: 5px;
+  position: relative;
+  background: linear-gradient(135deg, #E0F7FA, #B2EBF2);
+  cursor: col-resize;
+  border-left: #4FC3F7 solid 1px;
+  border-right: #4FC3F7 solid 1px;
+}
+
+#resizer-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 20px;
+  background-color: #B2EBF2;
+  border: 2px solid #4FC3F7;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 2px;
+}
+
+#resizer-button::before,
+#resizer-button::after {
+  content: '';
+  position: absolute;
+  background-color: #4FC3F7;
+}
+
+#resizer-button::before {
+  width: 100%;
+  height: 2px;
+  top: 0;
+}
+
+#resizer-button::after {
+  width: 100%;
+  height: 2px;
+  bottom: 0;
+}
+
+#resizer-button span {
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  background-color: #4FC3F7;
 }
 
 #workspace {
@@ -193,7 +276,6 @@ watch((useStorage("game")), () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-top-left-radius: 8px;
   background: linear-gradient(to bottom, #87CEEB, #3CB371);
 }
 
@@ -207,7 +289,6 @@ watch((useStorage("game")), () => {
   flex-direction: column;
   flex: 1;
   background: linear-gradient(to bottom, #87CEEB, #3CB371);
-  border-top-right-radius: 8px;
 }
 
 #controlPanel {
@@ -224,7 +305,6 @@ watch((useStorage("game")), () => {
   border: none;
   border-radius: 10px;
   font-size: 1.2rem;
-  font-weight: bolder;
   transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
   box-shadow: 0 4px 8px rgba(0, 150, 136, 0.4);
 }
@@ -246,14 +326,20 @@ watch((useStorage("game")), () => {
   box-shadow: 0 8px 16px rgba(0, 100, 100, 0.8);
 }
 
+#gameInfoText {
+  background: linear-gradient(135deg, #E0F7FA, #B2EBF2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 1.2rem;
+  line-height: 1.6rem;
+}
+
 #runBox {
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 5px 20px;
   background-image: linear-gradient(45deg, #8B4513 25%, #A0522D 25%, #A0522D 50%, #8B4513 50%, #8B4513 75%, #A0522D 75%, #A0522D);
   background-size: 50px 50px;
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
 }
 
 #buttonBox {
@@ -270,11 +356,12 @@ watch((useStorage("game")), () => {
   border-radius: 8px;
   margin: 5px 10px;
   box-shadow: 0 4px 6px rgba(0, 128, 0, 0.2);
-  font-size: 1.2rem;
-  font-weight: bolder;
+  font-size: 2.5rem;
   transition: background 0.3s ease, transform 0.2s ease;
-  height: 4.8rem;
+  height: 5.4rem;
   width: 7.2rem;
+  font-family: "微软雅黑", sans-serif;
+  font-weight: bolder;
 }
 
 .runButton:hover {

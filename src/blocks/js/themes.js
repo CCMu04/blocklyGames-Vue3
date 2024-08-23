@@ -7,9 +7,8 @@ themes.sftTheme = Blockly.Theme.defineTheme('SKY_AND_FOREST_THEME', {
     'blockStyles': {},
     'categoryStyles': {},
     'fontStyle': {
-        "family": "Noto Sans SC, ZCOOL KuaiLe, sans-serif",
-        "weight": "bold",
-        "size": 12
+        "weight": "bolder",
+        "size": 14
     },
     'componentStyles': {
         workspaceBackgroundColour: '#E0F2F199',
